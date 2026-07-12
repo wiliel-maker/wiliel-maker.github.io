@@ -1,0 +1,856 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Роман — Middle-разработчик · Портфолио</title>
+
+<style>
+  :root {
+    --paper:      #EBEDF0;
+    --surface:    #FFFFFF;
+    --surface-2:  #F4F5F7;
+    --ink:        #17222D;
+    --muted:      #5C6B77;
+    --faint:      #8895A0;
+    --ember:      #C9491A;
+    --ember-soft: rgba(201, 73, 26, 0.10);
+    --teal:       #256676;
+    --line:       rgba(23, 34, 45, 0.13);
+    --line-soft:  rgba(23, 34, 45, 0.07);
+    --good:       #2C7A4B;
+
+    --mono: "Cascadia Code", "JetBrains Mono", "SF Mono", ui-monospace, "Consolas", "Menlo", monospace;
+    --sans: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+
+    --maxw: 1080px;
+    --radius: 9px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper:      #0E1621;
+      --surface:    #15212E;
+      --surface-2:  #1A2836;
+      --ink:        #E7EDF2;
+      --muted:      #93A3AF;
+      --faint:      #6E7F8B;
+      --ember:      #F1723C;
+      --ember-soft: rgba(241, 114, 60, 0.13);
+      --teal:       #57A4B6;
+      --line:       rgba(231, 237, 242, 0.12);
+      --line-soft:  rgba(231, 237, 242, 0.06);
+      --good:       #4FB37A;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background:
+      radial-gradient(1200px 600px at 82% -8%, var(--ember-soft), transparent 60%),
+      var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: var(--maxw);
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  a { color: inherit; }
+
+  /* ---------- eyebrow / labels ---------- */
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+
+  /* ---------- masthead ---------- */
+  header.mast {
+    border-bottom: 1px solid var(--line);
+    position: relative;
+    overflow: hidden;
+  }
+  header.mast::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--line-soft) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line-soft) 1px, transparent 1px);
+    background-size: 34px 34px;
+    mask-image: linear-gradient(120deg, rgba(0,0,0,0.7), transparent 62%);
+    -webkit-mask-image: linear-gradient(120deg, rgba(0,0,0,0.7), transparent 62%);
+    pointer-events: none;
+  }
+  .mast-inner {
+    position: relative;
+    padding: 30px 0 44px;
+  }
+  .topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 52px;
+  }
+  .handle {
+    font-family: var(--mono);
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+  .handle .cursor {
+    display: inline-block;
+    width: 0.62ch;
+    height: 1.05em;
+    background: var(--ember);
+    transform: translateY(0.16em);
+    margin-left: 2px;
+    animation: blink 1.15s steps(1) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .status {
+    font-family: var(--mono);
+    font-size: 0.76rem;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--line);
+    border-radius: 100px;
+    padding: 5px 13px;
+    background: var(--surface);
+  }
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--good);
+    box-shadow: 0 0 0 0 var(--good);
+    animation: pulse 2.4s ease-out infinite;
+  }
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--good) 55%, transparent); }
+    70%  { box-shadow: 0 0 0 7px transparent; }
+    100% { box-shadow: 0 0 0 0 transparent; }
+  }
+
+  h1.name {
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: clamp(2.7rem, 8vw, 5.2rem);
+    line-height: 0.98;
+    letter-spacing: -0.02em;
+    margin: 0;
+    text-wrap: balance;
+  }
+  h1.name .role {
+    display: block;
+    font-size: clamp(1rem, 2.6vw, 1.5rem);
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--ember);
+    margin-top: 14px;
+  }
+  .lede {
+    max-width: 60ch;
+    margin: 22px 0 0;
+    font-size: 1.08rem;
+    color: var(--muted);
+  }
+  .lede strong { color: var(--ink); font-weight: 600; }
+
+  .cta-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 30px;
+  }
+  .btn {
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    letter-spacing: 0.02em;
+    text-decoration: none;
+    padding: 11px 20px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    transition: transform .15s ease, border-color .15s ease, background .15s ease;
+  }
+  .btn.primary {
+    background: var(--ember);
+    border-color: var(--ember);
+    color: #fff;
+  }
+  .btn.ghost { background: var(--surface); color: var(--ink); }
+  .btn:hover { transform: translateY(-2px); }
+  .btn.ghost:hover { border-color: var(--ember); color: var(--ember); }
+
+  /* ---------- stats strip ---------- */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface);
+    overflow: hidden;
+    margin-top: -22px;
+    position: relative;
+    z-index: 3;
+  }
+  .stat {
+    padding: 20px 22px;
+    border-right: 1px solid var(--line);
+  }
+  .stat:last-child { border-right: none; }
+  .stat .num {
+    font-family: var(--mono);
+    font-size: 1.7rem;
+    font-weight: 700;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .stat .num .u { color: var(--ember); }
+  .stat .lbl {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* ---------- section scaffold ---------- */
+  section { padding: 56px 0 8px; }
+  .sec-head {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 26px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  .sec-head h2 {
+    font-family: var(--mono);
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    margin: 0;
+  }
+  .sec-head .count {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    color: var(--faint);
+    margin-left: auto;
+  }
+
+  /* ---------- stack grid ---------- */
+  .stack {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+  }
+  .stack-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+  }
+  .stack-card .k {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin-bottom: 9px;
+  }
+  .stack-card .v { font-size: 0.95rem; color: var(--ink); }
+
+  /* ---------- project grid ---------- */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 22px 22px 20px;
+    display: flex;
+    flex-direction: column;
+    transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+  }
+  .card:hover {
+    transform: translateY(-3px);
+    border-color: color-mix(in srgb, var(--ember) 45%, var(--line));
+    box-shadow: 0 12px 30px -18px rgba(0,0,0,0.5);
+  }
+  .card .ptitle {
+    font-size: 1.12rem;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    margin: 0 0 2px;
+  }
+  .card .pkind {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin-bottom: 12px;
+  }
+  .card p.desc {
+    margin: 0 0 16px;
+    font-size: 0.94rem;
+    color: var(--muted);
+    flex: 1;
+  }
+  .card p.desc b { color: var(--ink); font-weight: 600; }
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .tag {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--muted);
+    border: 1px solid var(--line);
+    background: var(--surface-2);
+    border-radius: 5px;
+    padding: 3px 8px;
+    white-space: nowrap;
+  }
+
+  /* ---------- flagship ---------- */
+  .flagship {
+    grid-column: 1 / -1;
+    background:
+      radial-gradient(700px 340px at 90% 0%, var(--ember-soft), transparent 62%),
+      var(--surface);
+    border: 1px solid color-mix(in srgb, var(--ember) 30%, var(--line));
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 30px;
+    padding: 30px;
+  }
+  .flagship .badge {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ember);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .flagship .badge::before {
+    content: "";
+    width: 22px; height: 1px; background: var(--ember);
+  }
+  .flagship .ptitle { font-size: 1.7rem; }
+  .flagship p.desc { font-size: 1rem; }
+  .fl-side {
+    border-left: 1px solid var(--line);
+    padding-left: 26px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    justify-content: center;
+  }
+  .fl-spec .k {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+  .fl-spec .v { font-size: 0.92rem; color: var(--ink); }
+  .fl-spec .v .em { color: var(--teal); font-family: var(--mono); font-size: 0.85rem; }
+
+  /* ---------- footer ---------- */
+  footer {
+    margin-top: 64px;
+    border-top: 1px solid var(--line);
+    background: var(--surface);
+  }
+  .foot-inner {
+    padding: 44px 0 50px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 26px;
+    flex-wrap: wrap;
+  }
+  .foot-inner h3 {
+    font-family: var(--mono);
+    font-size: 1.5rem;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+  }
+  .foot-inner .sub { color: var(--muted); margin: 0; }
+  .mail {
+    font-family: var(--mono);
+    font-size: 1.02rem;
+    text-decoration: none;
+    color: var(--ember);
+    border: 1px solid var(--line);
+    background: var(--surface-2);
+    border-radius: 8px;
+    padding: 12px 18px;
+    transition: border-color .15s ease, transform .15s ease;
+    white-space: nowrap;
+  }
+  .mail:hover { border-color: var(--ember); transform: translateY(-2px); }
+  .colophon {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--faint);
+    padding: 0 0 26px;
+  }
+
+  /* ---------- toast ---------- */
+  #toast {
+    position: fixed;
+    left: 50%;
+    bottom: 26px;
+    transform: translateX(-50%) translateY(16px);
+    background: var(--ink);
+    color: var(--paper);
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    padding: 11px 18px;
+    border-radius: 8px;
+    box-shadow: 0 14px 34px -12px rgba(0,0,0,0.55);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s ease, transform .2s ease;
+    z-index: 50;
+    max-width: 90vw;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ---------- reveal animation ---------- */
+  .reveal {
+    opacity: 0;
+    transform: translateY(14px);
+    animation: rise .6s cubic-bezier(.2,.7,.2,1) forwards;
+  }
+  @keyframes rise { to { opacity: 1; transform: none; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .reveal { animation: none; opacity: 1; transform: none; }
+    .dot, .handle .cursor { animation: none; }
+    .btn:hover, .card:hover, .mail:hover { transform: none; }
+  }
+
+  /* ---------- responsive ---------- */
+  @media (max-width: 860px) {
+    .flagship { grid-template-columns: 1fr; gap: 22px; padding: 24px; }
+    .fl-side { border-left: none; border-top: 1px solid var(--line); padding-left: 0; padding-top: 20px; }
+  }
+  @media (max-width: 620px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .stat:nth-child(2) { border-right: none; }
+    .stat:nth-child(1), .stat:nth-child(2) { border-bottom: 1px solid var(--line); }
+    .topbar { margin-bottom: 34px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="mast">
+  <div class="wrap mast-inner">
+    <div class="topbar reveal">
+      <span class="handle">~/roman&nbsp;·&nbsp;dev<span class="cursor"></span></span>
+      <span class="status"><span class="dot"></span>Доступен для заказов</span>
+    </div>
+
+    <h1 class="name reveal" style="animation-delay:.05s">
+      Роман
+      <span class="role">Middle-разработчик · Python · Java · C#</span>
+    </h1>
+
+    <p class="lede reveal" style="animation-delay:.12s">
+      Пишу <strong>рабочие инструменты, а не демки</strong>: веб-приложения на Flask,
+      Telegram-ботов с ИИ, десктопные программы на Python и моды для игр.
+      Довожу проект от идеи до готового <b>.exe</b> или задеплоенного сервиса.
+    </p>
+
+    <div class="cta-row reveal" style="animation-delay:.18s">
+      <a class="btn primary" href="mailto:RomanAiCoder@yandex.ru" data-copy="RomanAiCoder@yandex.ru">Написать мне →</a>
+      <a class="btn ghost" href="https://github.com/wiliel-maker" target="_blank" rel="noopener" data-extlink>GitHub ↗</a>
+      <a class="btn ghost" href="#projects">Смотреть проекты</a>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="stats reveal" style="animation-delay:.22s">
+    <div class="stat">
+      <div class="num">12<span class="u">+</span></div>
+      <div class="lbl">завершённых проектов</div>
+    </div>
+    <div class="stat">
+      <div class="num">4</div>
+      <div class="lbl">языка · Python / Java / C# / JS</div>
+    </div>
+    <div class="stat">
+      <div class="num">~6<span class="u">k</span></div>
+      <div class="lbl">строк собственного кода</div>
+    </div>
+    <div class="stat">
+      <div class="num">4</div>
+      <div class="lbl">платформы · Web · Desktop · Bots · Games</div>
+    </div>
+  </div>
+
+  <!-- STACK -->
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">// Stack</span>
+      <h2>Чем работаю</h2>
+    </div>
+    <div class="stack">
+      <div class="stack-card">
+        <div class="k">Языки</div>
+        <div class="v">Python · Java · C# · JavaScript</div>
+      </div>
+      <div class="stack-card">
+        <div class="k">Веб &amp; бэкенд</div>
+        <div class="v">Flask · SQLite · HTML/CSS/JS · ngrok</div>
+      </div>
+      <div class="stack-card">
+        <div class="k">Telegram-боты</div>
+        <div class="v">aiogram · telebot · Telethon · Bot API</div>
+      </div>
+      <div class="stack-card">
+        <div class="k">Десктоп &amp; сборка</div>
+        <div class="v">PyQt6 · CustomTkinter · PyInstaller</div>
+      </div>
+      <div class="stack-card">
+        <div class="k">ИИ-интеграция</div>
+        <div class="v">LLM-API · vision · эмбеддинги · pHash</div>
+      </div>
+      <div class="stack-card">
+        <div class="k">Моддинг &amp; игры</div>
+        <div class="v">Minecraft (Fabric/Forge/NeoForge) · Unity · BepInEx</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROJECTS -->
+  <section id="projects">
+    <div class="sec-head">
+      <span class="eyebrow">// Modding &amp; Graphics</span>
+      <h2>Игры и моды</h2>
+      <span class="count">5 проектов</span>
+    </div>
+
+    <div class="grid">
+      <!-- FLAGSHIP -->
+      <article class="flagship">
+        <div>
+          <div class="badge">Флагман</div>
+          <h3 class="ptitle">Браузер внутри Minecraft</h3>
+          <div class="pkind">Собственный движок · аналог WebDisplays</div>
+          <p class="desc">
+            Полноценный веб-браузер, который отображается прямо на блоке-экране в игре.
+            Готового решения под новую версию не было, поэтому <b>движок написан с нуля</b>:
+            Chromium через JCEF в фоновом режиме, рендер каждого кадра в текстуру блока,
+            живой ввод — <b>клик, клавиатура, прокрутка, адресная строка</b>. Экраны можно
+            собирать в стену из нескольких блоков, а действия <b>синхронизируются между
+            игроками в мультиплеере</b>. Собран в один раздаваемый мод.
+          </p>
+          <div class="tags">
+            <span class="tag">Java</span>
+            <span class="tag">Fabric</span>
+            <span class="tag">Minecraft 26.2</span>
+            <span class="tag">JCEF / Chromium</span>
+            <span class="tag">OpenGL</span>
+            <span class="tag">Networking</span>
+          </div>
+        </div>
+        <div class="fl-side">
+          <div class="fl-spec">
+            <div class="k">Ключевое</div>
+            <div class="v">Off-screen рендер Chromium → текстура блока в реальном времени</div>
+          </div>
+          <div class="fl-spec">
+            <div class="k">Сложность</div>
+            <div class="v">Мультиблочные экраны, полный ввод, сетевая синхронизация</div>
+          </div>
+          <div class="fl-spec">
+            <div class="k">Результат</div>
+            <div class="v"><span class="em">webscreen-1.0.4.jar</span> — работает в реальном лаунчере</div>
+          </div>
+        </div>
+      </article>
+
+      <article class="card">
+        <h3 class="ptitle">ReZero: Return by Death</h3>
+        <div class="pkind">Порт мода на новые версии</div>
+        <p class="desc">
+          Перенос игровой механики «возврат после смерти + откат мира» на актуальные
+          версии Minecraft. Исходников не было — <b>восстановил код декомпиляцией</b> и
+          адаптировал под изменившийся API. Две отдельные сборки — <b>NeoForge и Fabric</b>.
+        </p>
+        <div class="tags">
+          <span class="tag">Java</span>
+          <span class="tag">NeoForge</span>
+          <span class="tag">Fabric</span>
+          <span class="tag">Декомпиляция</span>
+        </div>
+      </article>
+
+      <article class="card">
+        <h3 class="ptitle">Muck — сетевой фикс</h3>
+        <div class="pkind">Мод-патч мультиплеера</div>
+        <p class="desc">
+          Чинит рассинхрон, из-за которого выброшенные предметы оказывались в разных
+          местах у разных игроков. Реализовал <b>собственный сетевой пакет</b>, чтобы
+          сервер задавал единую позицию для всех клиентов.
+        </p>
+        <div class="tags">
+          <span class="tag">C#</span>
+          <span class="tag">BepInEx</span>
+          <span class="tag">Harmony</span>
+          <span class="tag">Networking</span>
+        </div>
+      </article>
+
+      <article class="card">
+        <h3 class="ptitle">RunningAxe</h3>
+        <div class="pkind">Оружейный мод с анимацией</div>
+        <p class="desc">
+          Боевой топор, который <b>покачивается в руке при беге</b>. Анимация сделана
+          через кастомное свойство модели и покадровые текстуры — без лишнего кода.
+        </p>
+        <div class="tags">
+          <span class="tag">Java</span>
+          <span class="tag">Minecraft Forge</span>
+          <span class="tag">3D-модель</span>
+        </div>
+      </article>
+
+      <article class="card">
+        <h3 class="ptitle">3D-платформер</h3>
+        <div class="pkind">Игра на Unity · в разработке</div>
+        <p class="desc">
+          Трёхмерный платформер: физика персонажа, уровни из примитивов и
+          <b>собственных 3D-моделей из Blender</b>, игровая логика на C#.
+        </p>
+        <div class="tags">
+          <span class="tag">Unity</span>
+          <span class="tag">C#</span>
+          <span class="tag">Blender</span>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">// Telegram</span>
+      <h2>Боты</h2>
+      <span class="count">4 проекта</span>
+    </div>
+    <div class="grid">
+      <article class="card">
+        <h3 class="ptitle">Аналитика каналов</h3>
+        <div class="pkind">«Баян-бот»</div>
+        <p class="desc">
+          Считает рейтинг постов канала и находит повторы («баяны») в <b>три слоя</b>:
+          хеш текста, перцептивный хеш картинок и <b>смысловое сравнение через
+          ИИ-эмбеддинги</b>. Есть фоновый автомониторинг и история решений.
+        </p>
+        <div class="tags">
+          <span class="tag">Python</span>
+          <span class="tag">aiogram</span>
+          <span class="tag">Telethon</span>
+          <span class="tag">ML-эмбеддинги</span>
+          <span class="tag">SQLite</span>
+        </div>
+      </article>
+
+      <article class="card">
+        <h3 class="ptitle">Генератор постов</h3>
+        <div class="pkind">Бот-копирайтер</div>
+        <p class="desc">
+          Превращает короткую идею в готовый пост: выбор <b>тональности и длины</b>,
+          команда стиля и <b>защита от prompt-инъекций</b>. Работает через LLM-API.
+        </p>
+        <div class="tags">
+          <span class="tag">Python</span>
+          <span class="tag">Bot API</span>
+          <span class="tag">LLM</span>
+        </div>
+      </article>
+
+      <article class="card">
+        <h3 class="ptitle">Распознавание фото</h3>
+        <div class="pkind">Бот-зрение</div>
+        <p class="desc">
+          Присылаешь изображение — бот <b>описывает его содержимое</b> через
+          vision-модель. Аккуратная обработка ошибок и лимитов API.
+        </p>
+        <div class="tags">
+          <span class="tag">Python</span>
+          <span class="tag">Vision LLM</span>
+          <span class="tag">Telegram</span>
+        </div>
+      </article>
+
+      <article class="card">
+        <h3 class="ptitle">Контент-автопилот</h3>
+        <div class="pkind">Автопостинг в канал</div>
+        <p class="desc">
+          Сам генерирует пост, <b>подбирает подходящее изображение</b> (Pexels) и
+          публикует в Telegram-канал по расписанию. Тема — дизайн и упаковка.
+        </p>
+        <div class="tags">
+          <span class="tag">Python</span>
+          <span class="tag">LLM</span>
+          <span class="tag">Pexels API</span>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">// Web &amp; Desktop</span>
+      <h2>Приложения</h2>
+      <span class="count">3 проекта</span>
+    </div>
+    <div class="grid">
+      <article class="card">
+        <h3 class="ptitle">Планировщик дел</h3>
+        <div class="pkind">Веб-приложение · Flask</div>
+        <p class="desc">
+          Полноценный сервис планирования: <b>аккаунты со входом по паролю</b>, задачи
+          по дням, повторяющиеся дела и уведомления в браузере. Разворачивается в
+          интернет и <b>открывается по постоянной ссылке</b>.
+        </p>
+        <div class="tags">
+          <span class="tag">Python</span>
+          <span class="tag">Flask</span>
+          <span class="tag">SQLite</span>
+          <span class="tag">HTML/CSS/JS</span>
+        </div>
+      </article>
+
+      <article class="card">
+        <h3 class="ptitle">WARP-пульт</h3>
+        <div class="pkind">Десктопный VPN-клиент · .exe</div>
+        <p class="desc">
+          Своё GUI-приложение для управления VPN-туннелями: <b>подключение одной
+          кнопкой</b>, раздельное туннелирование по сайтам и подсетям, работает
+          <b>без установки основного клиента</b>. Собрано в один портативный .exe.
+        </p>
+        <div class="tags">
+          <span class="tag">Python</span>
+          <span class="tag">CustomTkinter</span>
+          <span class="tag">PyInstaller</span>
+          <span class="tag">Сети / WinDivert</span>
+        </div>
+      </article>
+
+      <article class="card">
+        <h3 class="ptitle">Симулятор защиты сервера</h3>
+        <div class="pkind">Интерактивная веб-визуализация</div>
+        <p class="desc">
+          Учебная страница, наглядно показывающая, как работает <b>защита сервера от
+          перегрузки</b> — rate limiting и чёрный список. Вся анимация трафика
+          нарисована на Canvas, <b>без сторонних библиотек</b>.
+        </p>
+        <div class="tags">
+          <span class="tag">JavaScript</span>
+          <span class="tag">HTML5 Canvas</span>
+          <span class="tag">Zero-deps</span>
+        </div>
+      </article>
+    </div>
+  </section>
+</div>
+
+<footer>
+  <div class="wrap foot-inner">
+    <div>
+      <span class="eyebrow">// Contact</span>
+      <h3>Обсудим задачу?</h3>
+      <p class="sub">Telegram-боты, сайты на Flask, десктоп-утилиты и моды — под ключ.</p>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <a class="mail" href="https://github.com/wiliel-maker" target="_blank" rel="noopener" data-extlink>github.com/wiliel-maker ↗</a>
+      <a class="mail" href="mailto:RomanAiCoder@yandex.ru" data-copy="RomanAiCoder@yandex.ru">RomanAiCoder@yandex.ru</a>
+    </div>
+  </div>
+  <div class="wrap colophon">© 2026 · Роман — Middle-разработчик · портфолио</div>
+</footer>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+  (function () {
+    var toastEl = document.getElementById('toast');
+    var timer;
+    function toast(msg) {
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      clearTimeout(timer);
+      timer = setTimeout(function () { toastEl.classList.remove('show'); }, 2400);
+    }
+    function copy(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text).catch(fallback);
+      }
+      return fallback();
+      function fallback() {
+        try {
+          var ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.focus(); ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+        } catch (e) {}
+      }
+    }
+    document.querySelectorAll('[data-copy]').forEach(function (el) {
+      el.addEventListener('click', function (e) {
+        e.preventDefault();
+        var v = el.getAttribute('data-copy');
+        copy(v);
+        toast('Почта скопирована: ' + v);
+      });
+    });
+    document.querySelectorAll('[data-extlink]').forEach(function (el) {
+      el.addEventListener('click', function (e) {
+        e.preventDefault();
+        var url = el.getAttribute('href');
+        var w = window.open(url, '_blank', 'noopener');
+        if (!w) { copy(url); toast('Ссылка скопирована: ' + url); }
+      });
+    });
+  })();
+</script>
+</body>
+</html>

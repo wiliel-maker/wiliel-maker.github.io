@@ -3,27 +3,26 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#EBEDF0" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0E1621" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0E1621">
 <meta name="format-detection" content="telephone=no">
 <meta name="description" content="Роман — Middle-разработчик. Python, Java, C#. Telegram-боты, веб-приложения на Flask, десктоп-утилиты и моды для игр.">
 <title>Роман — Middle-разработчик · Портфолио</title>
 
 <style>
   :root {
-    --paper:      #EBEDF0;
-    --surface:    #FFFFFF;
-    --surface-2:  #F4F5F7;
-    --ink:        #17222D;
-    --muted:      #5C6B77;
-    --faint:      #8895A0;
-    --ember:      #C9491A;
-    --ember-soft: rgba(201, 73, 26, 0.10);
-    --teal:       #256676;
-    --line:       rgba(23, 34, 45, 0.13);
-    --line-soft:  rgba(23, 34, 45, 0.07);
-    --good:       #2C7A4B;
+    --paper:      #0E1621;
+    --surface:    #15212E;
+    --surface-2:  #1A2836;
+    --ink:        #E7EDF2;
+    --muted:      #93A3AF;
+    --faint:      #6E7F8B;
+    --ember:      #F1723C;
+    --ember-soft: rgba(241, 114, 60, 0.13);
+    --teal:       #57A4B6;
+    --line:       rgba(231, 237, 242, 0.12);
+    --line-soft:  rgba(231, 237, 242, 0.06);
+    --good:       #4FB37A;
 
     --mono: "Cascadia Code", "JetBrains Mono", "SF Mono", ui-monospace, "Consolas", "Menlo", monospace;
     --sans: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
@@ -31,27 +30,9 @@
     --maxw: 1080px;
     --radius: 9px;
 
-    --good-glow: rgba(44, 122, 75, 0.55);
+    --good-glow: rgba(79, 179, 122, 0.55);
 
-    color-scheme: light dark;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --paper:      #0E1621;
-      --surface:    #15212E;
-      --surface-2:  #1A2836;
-      --ink:        #E7EDF2;
-      --muted:      #93A3AF;
-      --faint:      #6E7F8B;
-      --ember:      #F1723C;
-      --ember-soft: rgba(241, 114, 60, 0.13);
-      --teal:       #57A4B6;
-      --line:       rgba(231, 237, 242, 0.12);
-      --line-soft:  rgba(231, 237, 242, 0.06);
-      --good:       #4FB37A;
-      --good-glow:  rgba(79, 179, 122, 0.55);
-    }
+    color-scheme: dark;
   }
 
   * { box-sizing: border-box; }
@@ -482,7 +463,7 @@
     .fl-side { border-left: none; border-top: 1px solid var(--line); padding-left: 0; padding-top: 20px; }
   }
   @media (max-width: 620px) {
-    .stats { grid-template-columns: repeat(2, 1fr); }
+    .stats { grid-template-columns: repeat(2, 1fr); margin-top: 16px; }
     .stat:nth-child(2) { border-right: none; }
     .stat:nth-child(1), .stat:nth-child(2) { border-bottom: 1px solid var(--line); }
     .topbar { margin-bottom: 34px; }

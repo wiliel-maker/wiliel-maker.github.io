@@ -1,0 +1,602 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0E1621">
+<meta name="description" content="Интерактивная визуализация: как поток запросов кладёт сервер и как его спасают rate limiting и чёрный список IP. Canvas, без библиотек.">
+<title>Симулятор защиты сервера — демо · Roman</title>
+<style>
+  :root{
+    /* палитра портфолио */
+    --paper:#0E1621; --panel:#15212E; --panel2:#1A2836;
+    --line:rgba(231,237,242,0.12); --line-soft:rgba(231,237,242,0.06);
+    --text:#E7EDF2; --muted:#93A3AF; --faint:#6E7F8B;
+    --accent:#F1723C; --accent-soft:rgba(241,114,60,0.13);
+
+    --legit:#4FB37A;   /* обычные пользователи */
+    --bot:#F2686B;     /* боты (атака) */
+    --shield:#57A4B6;  /* защита */
+    --ok:#4FB37A; --warn:#E3B341; --bad:#F1723C; --crit:#E05252;
+
+    --mono:"Cascadia Code","JetBrains Mono","SF Mono",ui-monospace,"Consolas","Menlo",monospace;
+    --sans:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+    --radius:9px;
+    color-scheme: dark;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%; text-size-adjust:100%}
+  body{
+    margin:0;
+    background:
+      radial-gradient(1100px 560px at 82% -8%, var(--accent-soft), transparent 60%),
+      var(--paper);
+    color:var(--text); font-family:var(--sans); font-size:16px; line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit}
+
+  .page-head{max-width:1180px; margin:0 auto; padding:22px 20px 6px}
+  .backlink{
+    font-family:var(--mono); font-size:.8rem; color:var(--muted);
+    text-decoration:none; display:inline-flex; align-items:center; gap:8px;
+    border:1px solid var(--line); background:var(--panel);
+    padding:6px 13px; border-radius:100px; margin-bottom:18px;
+    transition:border-color .15s ease, color .15s ease;
+  }
+  .backlink:hover{border-color:var(--accent); color:var(--accent)}
+  .eyebrow{
+    font-family:var(--mono); font-size:.72rem; letter-spacing:.18em;
+    text-transform:uppercase; color:var(--faint);
+  }
+  h1{font-family:var(--mono); margin:6px 0 4px; font-size:clamp(1.4rem,4vw,2rem); letter-spacing:-.01em}
+  .sub{color:var(--muted); font-size:.98rem; margin:0; max-width:70ch}
+  .safe-note{
+    display:inline-block; margin-top:12px; font-size:.8rem; color:var(--muted);
+    background:var(--panel); border:1px solid var(--line); padding:6px 13px; border-radius:100px;
+  }
+
+  main{max-width:1180px; margin:0 auto; padding:16px 20px 60px}
+
+  .grid{display:grid; grid-template-columns:1.55fr 1fr; gap:16px; align-items:start}
+  @media (max-width:900px){ .grid{grid-template-columns:1fr} }
+
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:14px}
+  .card h2{
+    margin:0 0 10px; font-family:var(--mono); font-size:.72rem; color:var(--faint);
+    font-weight:600; letter-spacing:.12em; text-transform:uppercase;
+  }
+  /* высоты заданы жёстко: иначе canvas тянется по своей внутренней пропорции
+     и страница «дышит» при каждом пересчёте под devicePixelRatio */
+  canvas{display:block; width:100%; border-radius:var(--radius); background:var(--panel2)}
+  #scene{height:380px}
+  #chart{height:200px}
+  @media (max-width:600px){ #scene{height:300px} }
+
+  /* статус сервера */
+  .status{display:flex; align-items:center; gap:10px; margin:2px 0 12px}
+  .dot{width:13px; height:13px; border-radius:50%; background:var(--ok); box-shadow:0 0 12px currentColor}
+  .status .name{font-weight:700; font-size:1.05rem}
+
+  /* индикатор нагрузки */
+  .load-wrap{margin:6px 0 14px}
+  .load-bar{height:16px; background:var(--panel2); border:1px solid var(--line); border-radius:100px; overflow:hidden}
+  .load-fill{height:100%; width:0%; background:linear-gradient(90deg,var(--ok),var(--warn),var(--bad),var(--crit)); transition:width .12s linear}
+  .load-num{font-family:var(--mono); font-variant-numeric:tabular-nums; font-weight:700}
+
+  /* статистика */
+  .stats{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+  .stat{background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:8px 10px}
+  .stat .k{font-size:.72rem; color:var(--muted)}
+  .stat .v{font-family:var(--mono); font-size:1.15rem; font-weight:700; font-variant-numeric:tabular-nums}
+
+  /* управление */
+  .ctrl{margin:12px 0}
+  .ctrl label{display:flex; justify-content:space-between; font-size:.82rem; color:var(--muted); margin-bottom:4px}
+  input[type=range]{width:100%; accent-color:var(--accent)}
+  .row{display:flex; gap:10px; flex-wrap:wrap}
+  button{
+    flex:1; min-width:130px; cursor:pointer; border:1px solid var(--line); color:var(--text);
+    background:var(--panel2); padding:11px 12px; border-radius:8px;
+    font-family:var(--mono); font-size:.82rem; font-weight:600; transition:.15s;
+  }
+  button:hover{border-color:var(--accent)}
+  button.attack{background:rgba(224,82,82,.12); border-color:rgba(224,82,82,.45); color:#FFD9D9}
+  button.attack.on{background:var(--crit); border-color:var(--crit); color:#2A0B0B}
+  button.reset{flex:0 0 auto; min-width:auto}
+
+  .toggles{display:flex; flex-direction:column; gap:8px; margin-top:6px}
+  .toggle{display:flex; align-items:center; gap:10px; background:var(--panel2); border:1px solid var(--line);
+          border-radius:8px; padding:10px 12px; cursor:pointer; user-select:none}
+  .toggle input{width:17px; height:17px; accent-color:var(--shield)}
+  .toggle .t{font-weight:600; font-size:.9rem}
+  .toggle .d{font-size:.78rem; color:var(--muted)}
+  .toggle.active{border-color:var(--shield); box-shadow:inset 0 0 0 1px var(--shield)}
+
+  /* легенда */
+  .legend{display:flex; gap:18px; flex-wrap:wrap; font-size:.8rem; color:var(--muted); margin-top:8px}
+  .legend i{display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; vertical-align:middle}
+
+  .full{grid-column:1 / -1}
+
+  .tech{
+    margin-top:22px; padding-top:16px; border-top:1px solid var(--line);
+    font-size:.85rem; color:var(--faint); font-family:var(--mono);
+  }
+  @media (prefers-reduced-motion: reduce){
+    .load-fill{transition:none}
+  }
+</style>
+</head>
+<body>
+
+<div class="page-head" id="pageHead">
+  <a class="backlink" href="./" >← в портфолио</a>
+  <div class="eyebrow">// Live demo</div>
+  <h1>Симулятор защиты сервера</h1>
+  <p class="sub">Наглядная модель того, как массовый поток запросов «кладёт» сервер и как его спасают
+     ограничение скорости и чёрный список IP. Вся сцена и график нарисованы на Canvas, без библиотек.</p>
+  <span class="safe-note">Безопасная симуляция: никакого реального сетевого трафика — только математическая модель на экране.</span>
+</div>
+
+<main>
+  <div class="grid">
+    <!-- ЛЕВО: сцена -->
+    <section class="card">
+      <h2>Что происходит с сервером</h2>
+      <canvas id="scene" height="380"></canvas>
+      <div class="legend">
+        <span><i style="background:var(--legit)"></i>Обычные пользователи</span>
+        <span><i style="background:var(--bot)"></i>Боты (атака)</span>
+        <span><i style="background:var(--shield)"></i>Щит защиты</span>
+        <span><i style="background:#94a3b8"></i>Сервер</span>
+      </div>
+    </section>
+
+    <!-- ПРАВО: статус + управление -->
+    <section class="card">
+      <h2>Состояние сервера</h2>
+      <div class="status">
+        <span class="dot" id="statusDot"></span>
+        <span class="name" id="statusName">В норме</span>
+      </div>
+
+      <div class="load-wrap">
+        <label style="display:flex; justify-content:space-between; font-size:.82rem; color:var(--muted)">
+          <span>Нагрузка на сервер</span><span class="load-num" id="loadNum">0%</span>
+        </label>
+        <div class="load-bar"><div class="load-fill" id="loadFill"></div></div>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><div class="k">Входящий трафик</div><div class="v" id="sIn">0</div></div>
+        <div class="stat"><div class="k">Обработано / сек</div><div class="v" id="sServed">0</div></div>
+        <div class="stat"><div class="k">Отброшено (перегрузка)</div><div class="v" id="sDrop">0</div></div>
+        <div class="stat"><div class="k">Отбито защитой</div><div class="v" id="sBlock">0</div></div>
+      </div>
+
+      <div class="ctrl">
+        <label><span>Обычные пользователи</span><span id="legitVal">средне</span></label>
+        <input type="range" id="legit" min="0" max="100" value="35">
+      </div>
+
+      <div class="row" style="margin-bottom:10px">
+        <button class="attack" id="attackBtn">Запустить DDoS-атаку</button>
+        <button class="reset" id="resetBtn" title="Сбросить счётчики и защиту">↺</button>
+      </div>
+
+      <div class="ctrl">
+        <label><span>Мощность атаки (число ботов)</span><span id="botVal">—</span></label>
+        <input type="range" id="bot" min="0" max="100" value="70" disabled>
+      </div>
+
+      <h2 style="margin-top:16px">Защита сервера</h2>
+      <div class="toggles">
+        <label class="toggle" id="rlToggle">
+          <input type="checkbox" id="rateLimit">
+          <span><span class="t">Ограничение скорости (rate limiting)</span><br>
+          <span class="d">Один IP может слать не более 5 запросов/сек. Лишнее отбрасывается.</span></span>
+        </label>
+        <label class="toggle" id="blToggle">
+          <input type="checkbox" id="blacklist">
+          <span><span class="t">Блокировка IP (чёрный список)</span><br>
+          <span class="d">IP, который шлёт слишком много, полностью блокируется на входе.</span></span>
+        </label>
+      </div>
+    </section>
+  </div>
+
+  <!-- График -->
+  <section class="card full" style="margin-top:16px">
+    <h2>График трафика (последние ~20 секунд)</h2>
+    <canvas id="chart" height="200"></canvas>
+    <div class="legend">
+      <span><i style="background:var(--bot)"></i>Входящий трафик</span>
+      <span><i style="background:var(--legit)"></i>Сервер успевает обрабатывать</span>
+      <span><i style="background:#94a3b8"></i>Предел сервера (100 запр./сек)</span>
+    </div>
+  </section>
+
+  <p class="tech">JavaScript · HTML5 Canvas · zero dependencies</p>
+</main>
+
+<script>
+/* =====================================================================
+   СИМУЛЯТОР DDoS — вся логика ниже. Реальная сеть НЕ используется,
+   это математическая модель + анимация на canvas.
+   ===================================================================== */
+
+// ---- Настройки модели ----
+const SERVER_CAPACITY = 100; // сколько запросов/сек сервер успевает обработать
+const MAX_LEGIT       = 60;  // максимум обычного трафика (запр./сек) при ползунке 100
+const MAX_BOT         = 600; // максимум трафика ботов (запр./сек) при ползунке 100
+const NUM_BOTS        = 40;  // сколько ботов в ботнете
+const RATE_LIMIT      = 5;   // лимит запросов/сек на один IP (защита №1)
+const BL_THRESHOLD    = 10;  // порог запросов/сек, после которого IP попадает в чёрный список
+const BL_RAMP_SEC     = 1.4; // за сколько секунд чёрный список "вычисляет" ботов
+
+// ---- Текущее состояние ----
+const state = {
+  legit: 35/100 * MAX_LEGIT, // текущий обычный трафик (запр./сек)
+  attackOn: false,
+  botSlider: 70,             // 0..100
+  rateLimit: false,
+  blacklist: false,
+  blRamp: 0,                 // 0..1 — насколько чёрный список уже заблокировал ботов
+  loadSmooth: 0,             // сглаженная нагрузка для индикатора
+};
+const totals = { served:0, dropped:0, blocked:0 };
+
+const $ = (id)=>document.getElementById(id);
+const scene = $('scene'), sctx = scene.getContext('2d');
+const chart = $('chart'), cctx = chart.getContext('2d');
+
+// ---- Чёткий canvas на любых экранах ----
+function fitCanvas(cv, ctx){
+  const dpr = window.devicePixelRatio || 1;
+  const w = cv.clientWidth, h = cv.clientHeight;
+  cv.width = w*dpr; cv.height = h*dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  return {w,h};
+}
+let SC = fitCanvas(scene, sctx);
+let CH = fitCanvas(chart, cctx);
+window.addEventListener('resize', ()=>{ SC=fitCanvas(scene,sctx); CH=fitCanvas(chart,cctx); });
+
+/* ЯДРО МОДЕЛИ: что происходит с трафиком прямо сейчас (запросов в секунду) */
+function computeTraffic(){
+  const legit = state.legit;
+  const botRaw = state.attackOn ? (state.botSlider/100 * MAX_BOT) : 0;
+  const perBot = botRaw / NUM_BOTS; // сколько шлёт один бот в секунду
+
+  // 1) Ограничение скорости: каждому IP не больше RATE_LIMIT в сек.
+  let botAfterLimit = botRaw;
+  if (state.rateLimit){
+    botAfterLimit = NUM_BOTS * Math.min(perBot, RATE_LIMIT);
+  }
+  // 2) Чёрный список: заблокированные IP убираются целиком.
+  let botAfterBL = botAfterLimit;
+  if (state.blacklist){
+    botAfterBL = botAfterLimit * (1 - state.blRamp);
+  }
+
+  const effectiveBot = botAfterBL;                 // боты, прошедшие защиту
+  const blockedByDefense = botRaw - effectiveBot;  // сколько отбила защита
+
+  const incoming = legit + effectiveBot;           // дошло до сервера
+  const served   = Math.min(incoming, SERVER_CAPACITY);
+  const droppedOverload = Math.max(0, incoming - SERVER_CAPACITY);
+  const load = incoming / SERVER_CAPACITY * 100;   // % нагрузки
+
+  return { legit, botRaw, perBot, effectiveBot, blockedByDefense,
+           incoming, served, droppedOverload, load };
+}
+
+/* Чёрный список вычисляет ботов не мгновенно */
+function updateBlacklistRamp(dt){
+  const perBot = (state.attackOn ? state.botSlider/100*MAX_BOT : 0) / NUM_BOTS;
+  const detected = state.attackOn && state.blacklist && perBot > BL_THRESHOLD;
+  const target = detected ? 1 : 0;
+  state.blRamp += (target - state.blRamp) * Math.min(1, dt / BL_RAMP_SEC);
+  state.blRamp = Math.max(0, Math.min(1, state.blRamp));
+}
+
+/* ВИЗУАЛЬНЫЕ "ПАКЕТЫ" — летящие точки от источников к серверу */
+const packets = [];
+const MAX_PACKETS = 280;
+let spawnLegit = 0, spawnBot = 0;
+const VIS_SCALE = 0.22; // сколько точек показывать на 1 запрос/сек
+
+function geom(){
+  const srcX = 70;                 // откуда вылетают пакеты
+  const serverX = SC.w - 120;      // где стоит сервер
+  const shieldX = SC.w - 215;      // линия щита (защиты)
+  return {srcX, serverX, shieldX};
+}
+
+function spawnPacket(type, t){
+  if (packets.length > MAX_PACKETS) return;
+  const g = geom();
+  // судьба пакета решается при рождении, исходя из текущей модели
+  let outcome;
+  if (type==='bot'){
+    const fracBlocked = t.botRaw>0 ? t.blockedByDefense/t.botRaw : 0;
+    if (Math.random() < fracBlocked) outcome = 'blocked';
+    else outcome = (Math.random() < safeFrac(t.droppedOverload, t.incoming)) ? 'dropped' : 'served';
+  } else {
+    // обычных пользователей защита не трогает, но при перегрузке их тоже отбрасывают
+    outcome = (Math.random() < safeFrac(t.droppedOverload, t.incoming)) ? 'dropped' : 'served';
+  }
+  const band = type==='bot' ? [SC.h*0.52, SC.h*0.9] : [SC.h*0.12, SC.h*0.48];
+  packets.push({
+    type, outcome,
+    x: g.srcX, y: rand(band[0], band[1]),
+    vx: rand(140,190), // пикс/сек
+    arrived:false, life:1, vy:0,
+  });
+}
+function safeFrac(a,b){ return b>0 ? Math.max(0,Math.min(1,a/b)) : 0; }
+function rand(a,b){ return a + Math.random()*(b-a); }
+
+function updatePackets(dt, t){
+  spawnLegit += t.legit * VIS_SCALE * dt;
+  spawnBot   += t.botRaw * VIS_SCALE * dt;
+  while (spawnLegit >= 1){ spawnPacket('legit', t); spawnLegit--; }
+  while (spawnBot   >= 1){ spawnPacket('bot',   t); spawnBot--; }
+
+  const g = geom();
+  for (let i=packets.length-1; i>=0; i--){
+    const p = packets[i];
+    if (!p.arrived){
+      p.x += p.vx * dt;
+      const targetX = (p.outcome==='blocked') ? g.shieldX : g.serverX;
+      if (p.x >= targetX){
+        p.x = targetX; p.arrived = true;
+        if (p.outcome==='dropped'){ p.vy = rand(40,90); }                          // падает вниз
+        else if (p.outcome==='blocked'){ p.vy = -rand(30,70); p.vx=-rand(20,50); } // отскок от щита
+      }
+    } else {
+      p.life -= dt*1.7;
+      p.y += p.vy*dt; p.x += (p.vx||0)*dt*0.3;
+      if (p.life <= 0){ packets.splice(i,1); }
+    }
+  }
+}
+
+/* РИСОВАНИЕ СЦЕНЫ */
+function drawScene(t){
+  const g = geom();
+  sctx.clearRect(0,0,SC.w,SC.h);
+
+  sctx.font='12px Segoe UI'; sctx.textAlign='left';
+  sctx.fillStyle='rgba(147,163,175,.9)';
+  sctx.fillText('Интернет', 18, 22);
+
+  // линия щита (если защита включена)
+  const defenseOn = state.rateLimit || state.blacklist;
+  if (defenseOn){
+    sctx.save();
+    sctx.strokeStyle='rgba(87,164,182,.95)'; sctx.lineWidth=3; sctx.setLineDash([8,8]);
+    sctx.beginPath(); sctx.moveTo(g.shieldX, 20); sctx.lineTo(g.shieldX, SC.h-20); sctx.stroke();
+    sctx.setLineDash([]);
+    sctx.fillStyle='rgba(87,164,182,.14)';
+    sctx.fillRect(g.shieldX-6, 20, 12, SC.h-40);
+    sctx.fillStyle='#8FD0DE'; sctx.font='bold 12px Segoe UI'; sctx.textAlign='center';
+    sctx.fillText('ЗАЩИТА', g.shieldX, 16);
+    sctx.restore();
+  }
+
+  // пакеты
+  for (const p of packets){
+    const base = p.type==='bot' ? [242,104,107] : [79,179,122];
+    let col = base;
+    if (p.arrived && p.outcome==='dropped')  col=[224,82,82];
+    if (p.arrived && p.outcome==='blocked')  col=[87,164,182];
+    if (p.arrived && p.outcome==='served')   col=[120,205,160];
+    sctx.globalAlpha = p.arrived ? Math.max(0,p.life) : 0.95;
+    sctx.fillStyle = `rgb(${col[0]},${col[1]},${col[2]})`;
+    sctx.beginPath(); sctx.arc(p.x, p.y, 3.4, 0, Math.PI*2); sctx.fill();
+  }
+  sctx.globalAlpha=1;
+
+  // СЕРВЕР
+  const st = serverStatus(t.load);
+  const bx = g.serverX-2, by = SC.h/2 - 55, bw = 96, bh = 110;
+  sctx.save();
+  sctx.shadowColor = st.color; sctx.shadowBlur = st.level>=2 ? 26 : 10;
+  roundRect(sctx, bx, by, bw, bh, 10);
+  sctx.fillStyle = '#101C2A'; sctx.fill();
+  sctx.lineWidth=2.5; sctx.strokeStyle=st.color; sctx.stroke();
+  sctx.restore();
+
+  // "лампочки" сервера
+  for (let r=0;r<3;r++){
+    sctx.fillStyle = st.color;
+    sctx.globalAlpha = 0.5 + 0.5*Math.abs(Math.sin(performance.now()/250 + r));
+    sctx.fillRect(bx+12, by+16+r*16, 26, 6);
+    sctx.globalAlpha=1;
+    sctx.fillStyle='rgba(255,255,255,.15)';
+    sctx.fillRect(bx+44, by+16+r*16, 40, 6);
+  }
+  sctx.fillStyle='#CBD8E4'; sctx.font='bold 12px Segoe UI'; sctx.textAlign='center';
+  sctx.fillText('СЕРВЕР', bx+bw/2, by+bh-14);
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+
+function serverStatus(load){
+  if (load < 70)  return {level:0, color:'#4FB37A', name:'В норме'};
+  if (load < 100) return {level:1, color:'#E3B341', name:'Высокая нагрузка'};
+  if (load < 160) return {level:2, color:'#F1723C', name:'Перегрузка'};
+  return                 {level:3, color:'#E05252', name:'Недоступен (отказ)'};
+}
+
+/* ГРАФИК трафика по времени */
+const history = []; // {in, served}
+const HISTORY_SEC = 20;
+let histTimer = 0;
+
+function pushHistory(t){
+  history.push({ in:t.incoming, served:t.served });
+  const maxPts = HISTORY_SEC*10; // ~10 точек в секунду
+  while (history.length > maxPts) history.shift();
+}
+
+function drawChart(){
+  cctx.clearRect(0,0,CH.w,CH.h);
+  const padL=42, padB=22, padT=10, padR=10;
+  const w=CH.w-padL-padR, h=CH.h-padT-padB;
+  let maxV = SERVER_CAPACITY*1.5;
+  for (const p of history) maxV = Math.max(maxV, p.in);
+  maxV = Math.ceil(maxV/50)*50;
+
+  // сетка + подписи
+  cctx.strokeStyle='rgba(231,237,242,.06)'; cctx.fillStyle='rgba(147,163,175,.8)';
+  cctx.font='11px Segoe UI'; cctx.textAlign='right'; cctx.lineWidth=1;
+  for (let i=0;i<=4;i++){
+    const y=padT + h*i/4; const val=Math.round(maxV*(1-i/4));
+    cctx.beginPath(); cctx.moveTo(padL,y); cctx.lineTo(CH.w-padR,y); cctx.stroke();
+    cctx.fillText(val, padL-6, y+4);
+  }
+  // линия предела сервера
+  const capY = padT + h*(1 - SERVER_CAPACITY/maxV);
+  cctx.strokeStyle='rgba(148,163,184,.9)'; cctx.setLineDash([6,5]); cctx.lineWidth=1.5;
+  cctx.beginPath(); cctx.moveTo(padL,capY); cctx.lineTo(CH.w-padR,capY); cctx.stroke();
+  cctx.setLineDash([]);
+
+  if (history.length<2){ axisTitle(); return; }
+  const n = history.length;
+  const xAt = i => padL + w*i/(n-1);
+  const yAt = v => padT + h*(1 - Math.min(v,maxV)/maxV);
+
+  drawArea(history.map(p=>p.in),     xAt, yAt, 'rgba(242,104,107,.18)', '#F2686B');
+  drawArea(history.map(p=>p.served), xAt, yAt, 'rgba(79,179,122,.16)',  '#4FB37A');
+  axisTitle();
+
+  function axisTitle(){
+    cctx.fillStyle='rgba(147,163,175,.8)'; cctx.textAlign='center'; cctx.font='11px Segoe UI';
+    cctx.fillText('← раньше      время      сейчас →', padL+w/2, CH.h-6);
+  }
+}
+function drawArea(arr, xAt, yAt, fill, stroke){
+  cctx.beginPath();
+  cctx.moveTo(xAt(0), yAt(arr[0]));
+  for (let i=1;i<arr.length;i++) cctx.lineTo(xAt(i), yAt(arr[i]));
+  const baseY = yAt(0);
+  cctx.lineTo(xAt(arr.length-1), baseY); cctx.lineTo(xAt(0), baseY); cctx.closePath();
+  cctx.fillStyle=fill; cctx.fill();
+
+  cctx.beginPath(); cctx.moveTo(xAt(0), yAt(arr[0]));
+  for (let i=1;i<arr.length;i++) cctx.lineTo(xAt(i), yAt(arr[i]));
+  cctx.strokeStyle=stroke; cctx.lineWidth=2; cctx.stroke();
+}
+
+/* ПАНЕЛЬ СТАТИСТИКИ */
+function updateUI(t){
+  state.loadSmooth += (t.load - state.loadSmooth)*0.2;
+  const st = serverStatus(state.loadSmooth);
+  $('statusDot').style.color = st.color;
+  $('statusDot').style.background = st.color;
+  $('statusName').textContent = st.name;
+  $('statusName').style.color = st.color;
+
+  $('loadFill').style.width = Math.min(100, state.loadSmooth/2) + '%'; // 200% -> 100% ширины
+  $('loadNum').textContent = Math.round(state.loadSmooth) + '%';
+  $('loadNum').style.color = st.color;
+
+  $('sIn').textContent     = Math.round(t.incoming + t.blockedByDefense);
+  $('sServed').textContent = Math.round(t.served);
+  $('sDrop').textContent   = Math.round(t.droppedOverload);
+  $('sBlock').textContent  = Math.round(t.blockedByDefense);
+  $('sDrop').style.color   = t.droppedOverload>1 ? 'var(--crit)' : 'var(--text)';
+  $('sBlock').style.color  = t.blockedByDefense>1 ? 'var(--shield)' : 'var(--text)';
+}
+
+/* ГЛАВНЫЙ ЦИКЛ */
+let last = performance.now();
+let uiTimer = 0;
+function loop(now){
+  let dt = (now-last)/1000; last=now;
+  if (dt>0.05) dt=0.05; // защита от скачков, если вкладка была свёрнута
+
+  updateBlacklistRamp(dt);
+  const t = computeTraffic();
+
+  updatePackets(dt, t);
+  drawScene(t);
+
+  histTimer += dt;
+  if (histTimer >= 0.1){ pushHistory(t); histTimer=0; drawChart(); }
+
+  totals.served  += t.served*dt;
+  totals.dropped += t.droppedOverload*dt;
+  totals.blocked += t.blockedByDefense*dt;
+
+  uiTimer += dt;
+  if (uiTimer >= 0.08){ updateUI(t); uiTimer=0; }
+
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+/* ОБРАБОТЧИКИ УПРАВЛЕНИЯ */
+const legitWords = ['нет','мало','средне','много','очень много'];
+$('legit').addEventListener('input', e=>{
+  const v = +e.target.value;
+  state.legit = v/100 * MAX_LEGIT;
+  $('legitVal').textContent = legitWords[Math.min(4, Math.floor(v/20))] || 'средне';
+});
+
+$('bot').addEventListener('input', e=>{
+  state.botSlider = +e.target.value;
+  $('botVal').textContent = Math.round(state.botSlider/100*NUM_BOTS) + ' ботов';
+});
+
+$('attackBtn').addEventListener('click', ()=>{
+  state.attackOn = !state.attackOn;
+  const btn = $('attackBtn'); const slider = $('bot');
+  if (state.attackOn){
+    btn.textContent = 'Остановить атаку';
+    btn.classList.add('on'); slider.disabled=false;
+    $('botVal').textContent = Math.round(state.botSlider/100*NUM_BOTS)+' ботов';
+  } else {
+    btn.textContent = 'Запустить DDoS-атаку';
+    btn.classList.remove('on'); slider.disabled=true;
+    $('botVal').textContent='—';
+  }
+});
+
+$('rateLimit').addEventListener('change', e=>{
+  state.rateLimit = e.target.checked;
+  $('rlToggle').classList.toggle('active', e.target.checked);
+});
+$('blacklist').addEventListener('change', e=>{
+  state.blacklist = e.target.checked;
+  $('blToggle').classList.toggle('active', e.target.checked);
+});
+
+$('resetBtn').addEventListener('click', ()=>{
+  state.attackOn=false; state.rateLimit=false; state.blacklist=false; state.blRamp=0;
+  packets.length=0; history.length=0;
+  totals.served=totals.dropped=totals.blocked=0;
+  $('attackBtn').textContent='Запустить DDoS-атаку';
+  $('attackBtn').classList.remove('on');
+  $('bot').disabled=true; $('botVal').textContent='—';
+  $('rateLimit').checked=false; $('blacklist').checked=false;
+  $('rlToggle').classList.remove('active'); $('blToggle').classList.remove('active');
+});
+
+// стартовые подписи
+$('legitVal').textContent = 'средне';
+</script>
+</body>
+</html>
